@@ -251,11 +251,29 @@ body{
 
 table td{
 	white-space: normal !important; 
-        padding: 5px; /* Apply cell padding */
+    padding: 5px; /* Apply cell padding */
 	word-wrap: break-word;  
 	text-align:center;
+	vertical-align: middle;
+	border: 1px solid #ddd;
+	padding: 8px;
 }
 
 table {
   table-layout: fixed;
+  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+#allUsers tr:nth-child(even){background-color: #f2f2f2;}
+
+#allUsers tr:hover {background-color: #ddd;}
+
+#allUsers th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #4CAF50;
+  color: white;
 }
