@@ -250,5 +250,11 @@ body{
 }
 
 table td{
+	white-space: normal !important; 
     padding: 5px; /* Apply cell padding */
+	word-wrap: break-word;  
+}
+
+table {
+  table-layout: fixed;
 }
