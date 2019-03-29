@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en-US">
+   <head>
+      <meta charset="utf-8">
+      <meta http-equiv="Content-Type" content="text/html">
+      <title>Lista de Reposítorios do Github API usando Jquery</title>
+      <meta name="author" content="Renan Augusto dos Santos">
+      <!--Bootstrap CSS-->
+      <link rel="stylesheet" type="text/css" media="all" href="css/bootstrap.min.css">
+      <!--CSS Personalizado-->
+      <link rel="stylesheet" type="text/css" media="all" href="css/styles.css">
+   </head>
+   <body>
+      <div class="container">
+         <div id="w">
+            <h1>Busca de repositórios do Github</h1>
+            <p>Digite o nome de usuário do Github abaixo e clique no botão para exibir informações do perfil via JSON.</p>
+            <input type="text" name="ghusername" id="ghusername" placeholder="Nome de usuário do Github...">
+            <a href="#" id="ghsubmitbtn" class="ghsubmitbtn">Exibir dados do usuário</a>
+            <div id="ghapidata" class="clearfix"></div>
+            <div class="container-fluid">
+               <table id="allUsers" class="datatable table table-hover table-bordered" width="100%" cellspacing="10">
+                  <caption>
+                     <h2>Lista de Repositórios</h2>
+                  </caption>
+                  <thead>
+                     <tr>
+                        <th class="th">Foto</th>
+                        <th class="th">Nome</th>
+                        <th class="th">Nome do repositório</th>
+                        <th class="th">Descrição do repositório</th>
+                        <th class="th">Número de stars</th>
+                        <th class="th">Número de forks</th>
+                        <th class="th">Contribuições</th>
+                     </tr>
+                  </thead>
+                  <tbody id="body">
+                  <tbody>
+               </table>
+            </div>
+         </div>
+      </div>
+      <script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>  
+      <script type="text/javascript" src="js/bootstrap.min.js"></script>  
+      <script type="text/javascript" src="js/bootbox.min.js"></script>  
+      <script type="text/javascript">
+         $(function(){
+         	
+           var docCached = $(document);
+           var currLeng = 1;	
+           var winCached = $(window);	
+         
+           //Evento link consulta usuario
+           $('#ghsubmitbtn').on('click', function(e){
+             e.preventDefault();
+             var username = $('#ghusername').val();
+             carregaUsuario(username,'#ghapidata');
+           }); 
+           
+           //Evento link ver repositorio
+           $(document).on("click", ".verrep", function(e) {
+         	
+         			var pulls_url = e.target.id;
+                     var dialog =  bootbox.dialog({
+         				title: 'Pull Requests do repositório',
+         				message: '<div class="modal-body-content clearfix"></div> <p><i class="fa fa-spin fa-spinner"></i> Carregando url '+pulls_url+'...</p>'
+         			});
+         			
+         	dialog.init(function(){
+         	var outhtml = '';
+         	
+         	//requisicao para consumo da api (pulls)
+             requestJSON(pulls_url, function(json) {
+               
+         		var pullrequest = json;
+         		//itera no conteudo recebido obtendo as informacoes solicitadas
+         		$.each(pullrequest, function(index) {
+         			var fullname   = pullrequest[index].user.login;
+         			var username   = pullrequest[index].user.login;
+         			var aviurl     = pullrequest[index].user.avatar_url;
+         			var profileurl = pullrequest[index].user.html_url;
+         			var pullrequesteurl = pullrequest[index].html_url;
+         			var titulo = pullrequest[index].title;
+         			var body = pullrequest[index].title;
+					var numero = pullrequest[index].number;
+					
+					//Convertendo datas recebidas em json p/ formato americano
+					var datacriacaoDate = new Date(pullrequest[index].created_at);
+					var dataatualizacaoDate = new Date(pullrequest[index].updated_at);
+         
+         			//console.log(" Nome: "+pullrequest[index].user.login+" Avatar: "+pullrequest[index].user.avatar_url+" Titulo: "+pullrequest[index].title+" Corpo: "+pullrequest[index].body+" Data Criacao: "+pullrequest[index].created_at+" Data Atualização: "+pullrequest[index].updated_at);
+         			
+         			//Construindo html para exibir os dados do pull request
+         			outhtml = outhtml + '<h2>'+fullname+' <span class="smallname">(@<a href="'+profileurl+'" target="_blank" data-toggle="tooltip" title="Ir para profile url">'+username+'</a>)</span></h2>';
+         			outhtml = outhtml + '<div class="ghcontent"><div class="avi"><a href="'+pullrequesteurl+'" target="_blank" data-toggle="tooltip" title="Ver este pull request"><img src="'+aviurl+'" width="80" height="80" alt="'+username+'"><br>ACESSAR PR '+numero+'</a></div>';
+         			outhtml = outhtml + '<p><strong>Titulo: </strong>'+titulo+'</p><p><strong>Data criação:</strong> '+datacriacaoDate.toDateString()+'<br><strong>Data atualização:</strong> '+dataatualizacaoDate.toDateString()+'<br><strong>Body: </strong>'+body+'</p></div>';
+         			outhtml = outhtml + '<div class="repolist clearfix">';
+         			
+         		});
+         		//console.log("Carregando "+outhtml);
+             }); 
+         	
+         		//Loading para dar tempo de receber e carregar as informacoes do pull request clicado
+         		setTimeout(function(){
+         			dialog.find('.bootbox-body').html(outhtml);
+         		}, 1800);
+         		
+         	});
+           });
+         
+         
+         
+           //Busca a pagina conforme scroll e inclui o conteudo na tabela (Atendendo scroll infinito)
+           function carregaConteudoTabela(mypage){
+           
+         	var requri   = 'https://api.github.com/search/repositories?q=language:Java&sort=stars&page='+mypage;
+         	
+         	//incluindo loading p/ informar carregamento
+             $('#allUsers').find('#body').append('<tr><td><img src="css/loader.gif" alt="loading..."></td></tr>');
+             
+         	console.log('Pagina a ser carregada->' + mypage);
+         	
+         	//Requisicao para consumo da api (repositories)
+             requestJSON(requri, function(json) {
+         		//console.log('JSON->' + json);
+         		
+         		//Remove o loading, pois recebemos o conteudo json
+         		$('#allUsers').find("tr:gt(0)").remove();
+         		//Itera no json para obter as informacoes de todos os nós (inf estão em items de cada nó)
+         		$.each(json.items, function(key, items){
+         			//console.log('ITEMS->' + items);
+         			
+         				
+         				var aviurl     = items.owner.avatar_url;
+         				var login   = items.owner.login;
+         				var descricao = items.description;
+         				var nome   = items.name;
+         				var profileurl = items.owner.html_url;
+         				var stars = items.stargazers_count;
+         				var forks = items.forks_count;
+         			
+         				
+         				var foto = "<a href='"+profileurl+"' target='_blank' data-toggle='tooltip' title='Ir para profile url'><img src='"+aviurl+"' width='40' height='40' alt='"+login+"'></a>";
+         				
+         				var pulls_url = items.url+"/pulls";
+         				var pulls_url_link = "<a id='"+pulls_url+"' href='#'  class='verrep' data-toggle='tooltip' title='Ver todos pull requests'>VER</a>";
+         		
+         				var itemsTable = [""];
+         				itemsTable.push("<tr>");
+         				itemsTable.push("<td id='foto'>"+foto+"</td>");
+         				itemsTable.push("<td id='login'>"+login+"</td>");
+         				itemsTable.push("<td id='nome'>"+nome+"</td>");
+         				itemsTable.push("<td id='descricao'>"+descricao+"</td>");
+         				itemsTable.push("<td id='stars'>"+stars+"</td>");
+         				itemsTable.push("<td id='forks'>"+forks+"</td>");
+         				itemsTable.push("<td id='pulls_url_link'>"+pulls_url_link+"</td>");
+         				itemsTable.push("</tr>");
+         				
+												
+         				//Insere a nova linha com todas as colunas preenchidas conforme dados no nó desse JSON
+         				$('#allUsers').find('#body').append(itemsTable);
+         				//console.log('adicionado->' + login);
+         	  });  
+             }); 
+			 
+			 //adiciona númeração da página
+			 $('#allUsers').find('#body').append("<tr><td id='pagina' bgcolor='#b7c4df'>"+mypage+"</td></tr>");
+           }
+          
+           
+           //Carrega dados de usuário especifico
+           function carregaUsuario(username, element){
+         	
+         	var requri   = 'https://api.github.com/users/'+username;
+             var repouri  = 'https://api.github.com/users/'+username+'/repos';
+             
+         	$(element).html('<div id="loader"><img src="css/loader.gif" alt="loading..."></div>');
+         	
+         	//Requisicao para consumo da api (users)
+             requestJSON(requri, function(json) {
+               
+         	  
+         	  if(json.message == "Not Found") {
+                 $(element).html("<h2>Usuario não encontrado</h2>");
+               }
+               
+               else {
+                 // caso contrário, exibimos informação
+                 var nome   = json.name;
+                 var login   = json.login;
+                 var aviurl     = json.avatar_url;
+                 var profileurl = json.html_url;
+                 var followersnum = json.followers;
+                 var followingnum = json.following;
+                 var reposnum     = json.public_repos;
+                 
+         		 
+                 if(nome == undefined) { 
+         			nome = login; 
+         		}
+                 
+         		//Construindo html para exibir os dados do usuario encontrado
+                 var outhtml = '<h2>'+nome+' <span class="smallname">(@<a href="'+profileurl+'" target="_blank" data-toggle="tooltip" title="Ir para profile url">'+login+'</a>)</span></h2>';
+                 outhtml = outhtml + '<div class="ghcontent"><div class="avi"><a href="'+profileurl+'" target="_blank" data-toggle="tooltip" title="Ir para profile url"><img src="'+aviurl+'" width="80" height="80" alt="'+login+'"><br>ACESSAR PROFILE</a></a></div>';
+                 outhtml = outhtml + '<p><strong>Followers:</strong> '+followersnum+'<br><strong>Following: </strong>'+followingnum+'<br><strong>Repos:</strong> '+reposnum+'</p></div>';
+                 outhtml = outhtml + '<div class="repolist clearfix">';
+                 
+         		//console.log(outhtml);
+         		
+         		//Adicionando as informacoes de repositorios no usuario encontrado
+                 var repositorios;
+                 $.getJSON(repouri, function(json){
+                   repositorios = json;   
+                   popularDadosRepos(repositorios,outhtml,element)                
+                 });          
+               } 
+             }); 
+         	
+           }
+           
+           //Popula dados do repositório
+           function popularDadosRepos(repositories,outhtml,divId){
+                   if(repositories.length == 0) { outhtml = outhtml + '<p>Sem repositórios!</p></div>'; }
+                   else {
+                     outhtml = outhtml + '<p><strong>Lista repositórios:</strong></p> <ul>';
+                     $.each(repositories, function(index) {
+                       outhtml = outhtml + '<li><a href="'+repositories[index].html_url+'" target="_blank" data-toggle="tooltip" title="Ir para repositório">'+repositories[index].name + '</a></li>';
+                     });
+                     outhtml = outhtml + '</ul></div>'; 
+                   }
+         		  $(divId).html(outhtml);
+                 } 
+         		
+         
+           //Faz chamada json
+           function requestJSON(url, callback) {
+             $.ajax({
+               url: url,
+               complete: function(xhr) {
+                 callback.call(null, xhr.responseJSON);
+               }
+             });
+           }
+           
+           //Adiciona conteudo scroll qdo chega final pagina
+         	function adicionaConteudo() {
+         	  //Libera evento scroll
+         	  dettachScrollEvent();
+         	  
+         	  //Loading para dar tempo de carregar dados na tabela
+         	  setTimeout(function() {
+         		for (var i = currLeng; i < currLeng + 1; i++)
+         			carregaConteudoTabela(i);
+         		currLeng = i;
+         		console.log("loading scroll infinito");
+         		attachScrollEvent();
+         	  }, 500);
+         	  
+         	  
+         	}
+            adicionaConteudo();
+           
+           //atacha scroll 
+           function attachScrollEvent() {
+         	  winCached.scroll(function() {
+         		if (winCached.scrollTop() + winCached.height() > docCached.height() - 300) {
+         		  adicionaConteudo();
+         		}
+         	  });
+         	}
+         
+         	//desatacha scroll 
+         	function dettachScrollEvent() {
+         	  winCached.unbind('scroll');
+         	}
+           
+         });
+      </script>
+   </body>
+</html>
